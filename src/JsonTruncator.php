@@ -37,7 +37,7 @@ class JsonTruncator {
 	 * Run json_encode but ensure that result string is shorter than the
 	 * maxLength; return json string
 	 * @param mixed $value  The value to encode
-	 * @param array $options  Maximum values and decay rate (see $defaults)
+	 * @param array $options  Truncation options as defined in static::$defaults
 	 * @return string
 	 * @throws InvalidOptionException if $options contains invalid values
 	 */
@@ -50,7 +50,7 @@ class JsonTruncator {
 	 * Run json_encode but ensure that result string is shorter than the
 	 * maxLength; return json string and a report of results
 	 * @param mixed $value  The value to encode
-	 * @param array $options  Maximum values and decay rate (see $defaults)
+	 * @param array $options  Truncation options as defined in static::$defaults
 	 * @return string
 	 * @throws InvalidOptionException if $options contains invalid values
 	 */
@@ -63,7 +63,7 @@ class JsonTruncator {
 
 	/**
 	 * Ensure options are valid
-	 * @param array $options  The options as outlined in $defaults
+	 * @param array $options  Truncation options as defined in static::$defaults
 	 * @throws InvalidOptionException
 	 */
 	protected static function _validateOptions(array $options) {
@@ -107,35 +107,44 @@ class JsonTruncator {
 	 * @property int bytes  The final json string length in bytes
 	 * @property int retryCount  The number of times json_encode was retried
 	 * @property bool gaveUp  True if maxRetries was reached
+	 * @property array options  The options array after any decay
 	 */
 	protected static function _attempt($value, array $options): array {
 		$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
 		// use strlen and not mb_strlen because we care about byte length
-		$bytes = strlen($json);
-		if ($bytes <= $options['maxLength']) {
-			$retryCount = $options['retryCount'];
-			$gaveUp = false;
-			return compact('json', 'bytes', 'retryCount', 'gaveUp');
+		if (strlen($json) <= $options['maxLength']) {
+			return static::_createReport($json, $options);
 		}
 		$options['retryCount']++;
 		$value = static::_walk($value, $options);
-		$newOptions = static::_decay($options);
-		if ($newOptions['maxRetries'] <= 0) {
+		$options = static::_decay($options);
+		if ($options['retryCount'] === $options['maxRetries']) {
 			// give up!
 			$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
-			$bytes = $options['maxLength'];
-			$retryCount = $options['retryCount'];
-			$gaveUp = true;
-			$json = substr($json, 0, $bytes);
-			return compact('json', 'bytes', 'retryCount', 'gaveUp');
+			$json = substr($json, 0, $options['maxLength']);
+			return static::_createReport($json, $options);
 		}
-		return static::_attempt($value, $newOptions);
+		return static::_attempt($value, $options);
+	}
+
+	/**
+	 * Create the final report based on the given final $json and $options
+	 * @param string $json  The final json string
+	 * @param array $options  The options after any decay
+	 * @return array
+	 */
+	protected static function _createReport(string $json, array $options): array {
+		$bytes = strlen($json);
+		$retryCount = $options['retryCount'];
+		$gaveUp = $options['retryCount'] >= $options['maxRetries'];
+		unset($options['retryCount']);
+		return compact('json', 'bytes', 'retryCount', 'gaveUp', 'options');
 	}
 
 	/**
 	 * Return a new set of options with reduced values for maxItems and
 	 * maxItemLength based on decayRate
-	 * @param array $options  Options as defined in static::$defaults
+	 * @param array $options  Truncation options as defined in static::$defaults
 	 * @return array  New options
 	 */
 	protected static function _decay(array $options): array {
@@ -148,14 +157,13 @@ class JsonTruncator {
 			floor($options['maxItemLength'] * $options['decayRate']),
 			3
 		);
-		$newOpts['maxRetries'] = $options['maxRetries'] - 1;
 		return $newOpts;
 	}
 
 	/**
-	 * Recursively update $value by reference to shrink values
+	 * Recursively update $value to shrink json
 	 * @param mixed $value  The value to update
-	 * @param array $options  Options as defined in static::$defaults
+	 * @param array $options  Truncation options as defined in static::$defaults
 	 * @return array|string  The new value
 	 */
 	protected static function _walk($value, array $options = []) {
