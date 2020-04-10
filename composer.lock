@@ -4,20 +4,21 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "845cf4b71dfa8323731dd9abfb294647",
-    "packages": [
+    "content-hash": "9f231f36eaabdf2db32b11f66b38fcee",
+    "packages": [],
+    "packages-dev": [
         {
             "name": "kahlan/kahlan",
-            "version": "4.7.2",
+            "version": "4.7.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/kahlan/kahlan.git",
-                "reference": "025114b7f13985abceff3ba0e28cca71cb0d40e8"
+                "reference": "34a4051b3066a5cb008a0c53b665d28a4c94d4b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kahlan/kahlan/zipball/025114b7f13985abceff3ba0e28cca71cb0d40e8",
-                "reference": "025114b7f13985abceff3ba0e28cca71cb0d40e8",
+                "url": "https://api.github.com/repos/kahlan/kahlan/zipball/34a4051b3066a5cb008a0c53b665d28a4c94d4b8",
+                "reference": "34a4051b3066a5cb008a0c53b665d28a4c94d4b8",
                 "shasum": ""
             },
             "require": {
@@ -58,15 +59,16 @@
                 "testing",
                 "unit test"
             ],
-            "time": "2020-01-25T16:39:06+00:00"
+            "time": "2020-04-10T14:12:22+00:00"
         }
     ],
-    "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
+    "platform": {
+        "php": ">=7.0"
+    },
     "platform-dev": []
 }

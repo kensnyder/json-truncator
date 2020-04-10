@@ -24,9 +24,9 @@ class JsonTruncator {
 	 */
 	public static $defaults = [
 		'maxLength' => 40000,
-		'maxItems' => 100,
-		'maxItemLength' => 8000,
-		'maxRetries' => 5,
+		'maxItems' => 20,
+		'maxItemLength' => 4000,
+		'maxRetries' => 8,
 		'decayRate' => 0.75,
 		'ellipsis' => '...[%overage%]',
 		'jsonFlags' => [JSON_UNESCAPED_UNICODE, JSON_UNESCAPED_SLASHES],
@@ -79,6 +79,9 @@ class JsonTruncator {
 		if ($options['maxRetries'] < 1) {
 			throw new InvalidOptionException('maxRetries must be at least 1');
 		}
+		if (!is_int($options['jsonBitmask'])) {
+			throw new InvalidOptionException('jsonFlags must be an array of integers');
+		}
 	}
 
 	/**
@@ -110,32 +113,32 @@ class JsonTruncator {
 	 * @return array  New options
 	 */
 	protected static function _decay(array $options): array {
-		return [
-			'maxLength' => $options['maxLength'],
-			'maxItems' => max(floor($options['maxItems'] * $options['decayRate']), 1),
-			'maxItemLength' => max(
-				floor($options['maxItemLength'] * $options['decayRate']),
-				3
-			),
-			'maxRetries' => $options['maxRetries'] - 1,
-			'decayRate' => $options['decayRate'],
-			'ellipsis' => $options['ellipsis'],
-			'jsonFlags' => $options['jsonFlags'],
-			'jsonBitmask' => $options['jsonBitmask'],
-			'jsonDepth' => $options['jsonDepth'],
-		];
+		$newOpts = $options;
+		$newOpts['maxItems'] = max(
+			floor($options['maxItems'] * $options['decayRate']),
+			1
+		);
+		$newOpts['maxItemLength'] = max(
+			floor($options['maxItemLength'] * $options['decayRate']),
+			3
+		);
+		$newOpts['maxRetries'] = $options['maxRetries'] - 1;
+		return $newOpts;
 	}
 
 	/**
 	 * Recursively update $value by reference to shrink values
 	 * @param mixed $value  The value to update
 	 * @param array $options  Options as defined in static::$defaults
-	 * @return array|string  The new value (since primitives can't be updated by reference)
+	 * @return array|string  The new value
 	 */
-	protected static function _walk(&$value, array $options = []) {
+	protected static function _walk($value, array $options = []) {
 		if (is_string($value)) {
 			// leave 2 characters for quotes
 			$max = $options['maxItemLength'] - mb_strlen($options['ellipsis']) - 2;
+			if (strlen($value) < $max) {
+				return $value;
+			}
 			if ($options['ellipsis']) {
 				// add 3 to overage for quotes and 1-char string
 				$overage = mb_strlen($value) - $max + 3;

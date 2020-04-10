@@ -17,7 +17,7 @@ use KenSnyder\JsonTruncator;
 
 $safeJson = JsonTruncator::encode($myValue, [
   'maxLength' => 40000,
-  'maxItems' => 100,
+  'maxItems' => 20,
   'maxItemLength' => 8000,
   'maxRetries' => 5,
   'decayRate' => 0.75,
@@ -44,16 +44,26 @@ $safeJson = JsonTruncator::encode($myValue, [
 After retrying truncation strategies `maxRetries` times, truncated (likely
 invalid) JSON will be returned.
 
+## Motivation
+
+I use Splunk. To make log values more accessible and searchable, I log values
+as JSON. Splunk is able to make JSON searchable by any field at any depth.
+Splunk does have a maximum length for each log line. If JSON exceeds that
+length, Splunk will cut it off and be unable to parse it as JSON. This library
+allows truncating JSON to fit within that line length limit. For more info on
+Splunk's limit, check out the docs for configuring
+[TRUNCATE](https://docs.splunk.com/Documentation/Splunk/latest/Admin/Propsconf#Line_breaking).
+
 ## Unit tests
 
 Unit tests are run through Kahlan.
 
-`sh unit.sh`
+`sh scripts/unit.sh`
 
 Or if you have npm's chokidar-cli installed globally, you can run tests for
 every file change:
 
-`sh unit-watch.sh`
+`sh scripts/unit-watch.sh`
 
 ## Prettier for development
 

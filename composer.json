@@ -1,25 +1,43 @@
 {
   "name": "kensnyder/json-truncator",
+  "version": "1.0.0",
   "description": "Encode a value to json but keep it within a designated string length.",
+  "keywords": [
+    "json",
+    "truncate",
+    "crop",
+    "limit",
+    "logging"
+  ],
+  "readme": "README.md",
+  "license": "ISC",
   "type": "library",
   "require": {
+    "php": ">=7.0"
+  },
+  "require-dev": {
     "kahlan/kahlan": "^4.7"
   },
   "scripts": {
-    "test": "sh unit.sh"
+    "test": "sh scripts/unit.sh"
   },
   "autoload": {
     "psr-0": {
       "KenSnyder": "src"
     }
   },
-  "license": "ISC",
   "authors": [
     {
       "name": "Ken Snyder",
       "email": "kendsnyder@gmail.com",
-      "github": "@kensnyder"
+      "homepage": "https://github.com/kensnyder",
+      "role": "developer"
     }
   ],
+  "support": {
+    "source": "https://github.com/kensnyder/json-truncator",
+    "docs": "https://github.com/kensnyder/json-truncator#readme",
+    "issues": "https://github.com/kensnyder/json-truncator/issues"
+  },
   "minimum-stability": "stable"
 }

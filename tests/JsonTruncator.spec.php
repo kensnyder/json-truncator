@@ -102,13 +102,13 @@ describe('JsonTruncator::stringify() with 2 rounds, no ellipsis', function () {
 	});
 });
 
-describe('JsonTruncator::stringify() with 3 rounds, ellipsis', function () {
+describe('JsonTruncator::stringify() with 2+ rounds, ellipsis', function () {
 	it('should truncate strings', function () {
 		$value = '1234567890';
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 11,
 			'maxItemLength' => 11,
-			'maxRetries' => 3,
+			'maxRetries' => 1,
 			'ellipsis' => '...',
 		]);
 		expect($json)->toBe('"123456..."');
@@ -128,7 +128,7 @@ describe('JsonTruncator::stringify() with 3 rounds, ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 26,
 			'maxItemLength' => 26,
-			'maxRetries' => 3,
+			'maxRetries' => 2,
 			'ellipsis' => '...[%overage%]',
 		]);
 		expect($json)->toBe('{"one":"123...[17]"}');
