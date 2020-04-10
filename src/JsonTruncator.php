@@ -5,26 +5,29 @@ namespace KenSnyder;
 require_once __DIR__ . '/InvalidOptionException.php';
 
 /**
- * Encode a value to json but keep it within a designated size
+ * Encode a value to json but keep it within a designated string length.
  * @package KenSnyder
  */
 class JsonTruncator {
 	/**
 	 * Default options for json encoding
 	 * @var array
-	 * @property int maxLength  Total length that the JSON may occupy
+	 * @property int maxLength  Total byte length that the JSON string may occupy
 	 * @property int maxItems  Max number of items in an array/object
 	 * @property int maxItemLength  Max string length of array/object members
+	 * @property int maxRetries  Max number of times to retry json_encode
 	 * @property float decayRate  How much to reduce limits on subsequent attempts
-	 * @property int maxAttempts  Max number of json_encode attempts
 	 * @property string ellipsis  The characters to append to truncated strings
+	 * @property array jsonFlags  The JSON_* constants to use when encoding
+	 * @see https://www.php.net/manual/en/json.constants.php#constant.json-object-as-array
+	 * @property array jsonDepth  Max depth of nested arrays or objects
 	 */
 	public static $defaults = [
 		'maxLength' => 40000,
 		'maxItems' => 100,
 		'maxItemLength' => 8000,
+		'maxRetries' => 5,
 		'decayRate' => 0.75,
-		'maxAttempts' => 4,
 		'ellipsis' => '...[%overage%]',
 		'jsonFlags' => [JSON_UNESCAPED_UNICODE, JSON_UNESCAPED_SLASHES],
 		'jsonDepth' => 512,
@@ -49,7 +52,7 @@ class JsonTruncator {
 	 * @param array $options  The options as outlined in $defaults
 	 * @throws InvalidOptionException
 	 */
-	public static function _validateOptions(array $options) {
+	protected static function _validateOptions(array $options) {
 		if (
 			!is_float($options['decayRate']) ||
 			$options['decayRate'] <= 0 ||
@@ -73,8 +76,8 @@ class JsonTruncator {
 		if ($options['maxItems'] < 1) {
 			throw new InvalidOptionException('maxItems must be at least 1');
 		}
-		if ($options['maxAttempts'] < 1) {
-			throw new InvalidOptionException('maxAttempts must be at least 1');
+		if ($options['maxRetries'] < 1) {
+			throw new InvalidOptionException('maxRetries must be at least 1');
 		}
 	}
 
@@ -84,21 +87,29 @@ class JsonTruncator {
 	 * @param array $options  The options as outlined in $defaults
 	 * @return string
 	 */
-	public static function _attempt($value, array $options): string {
+	protected static function _attempt($value, array $options): string {
 		$json = json_encode($value, $options['jsonBitmask'], $options['jsonDepth']);
+		// use strlen and not mb_strlen because we care about byte length
 		if (strlen($json) <= $options['maxLength']) {
 			return $json;
 		}
 		$value = static::_walk($value, $options);
 		$newOptions = static::_decay($options);
-		if ($newOptions['maxAttempts'] <= 0) {
+		if ($newOptions['maxRetries'] <= 0) {
+			// give up!
 			$json = json_encode($value, $options['jsonBitmask'], $options['jsonDepth']);
 			return substr($json, 0, $options['maxLength']);
 		}
 		return static::_attempt($value, $newOptions);
 	}
 
-	public static function _decay(array $options): array {
+	/**
+	 * Return a new set of options with reduced values for maxItems and
+	 * maxItemLength based on decayRate
+	 * @param array $options  Options as defined in static::$defaults
+	 * @return array  New options
+	 */
+	protected static function _decay(array $options): array {
 		return [
 			'maxLength' => $options['maxLength'],
 			'maxItems' => max(floor($options['maxItems'] * $options['decayRate']), 1),
@@ -106,19 +117,28 @@ class JsonTruncator {
 				floor($options['maxItemLength'] * $options['decayRate']),
 				3
 			),
-			'maxAttempts' => $options['maxAttempts'] - 1,
+			'maxRetries' => $options['maxRetries'] - 1,
 			'decayRate' => $options['decayRate'],
+			'ellipsis' => $options['ellipsis'],
 			'jsonFlags' => $options['jsonFlags'],
 			'jsonBitmask' => $options['jsonBitmask'],
 			'jsonDepth' => $options['jsonDepth'],
 		];
 	}
 
-	public static function _walk(&$value, array $options = []) {
+	/**
+	 * Recursively update $value by reference to shrink values
+	 * @param mixed $value  The value to update
+	 * @param array $options  Options as defined in static::$defaults
+	 * @return array|string  The new value (since primitives can't be updated by reference)
+	 */
+	protected static function _walk(&$value, array $options = []) {
 		if (is_string($value)) {
+			// leave 2 characters for quotes
 			$max = $options['maxItemLength'] - mb_strlen($options['ellipsis']) - 2;
 			if ($options['ellipsis']) {
-				$overage = mb_strlen($value) - $max;
+				// add 3 to overage for quotes and 1-char string
+				$overage = mb_strlen($value) - $max + 3;
 				$short = mb_substr($value, 0, $max);
 				$ellipsis = str_replace('%overage%', $overage, $options['ellipsis']);
 				return $short . $ellipsis;

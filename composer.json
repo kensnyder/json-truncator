@@ -1,9 +1,12 @@
 {
   "name": "kensnyder/json-truncator",
-  "description": "Encode a value to json but keep it within a designated size.",
+  "description": "Encode a value to json but keep it within a designated string length.",
   "type": "library",
   "require": {
     "kahlan/kahlan": "^4.7"
+  },
+  "scripts": {
+    "test": "sh unit.sh"
   },
   "autoload": {
     "psr-0": {

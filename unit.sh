@@ -1,1 +1,1 @@
-./vendor/bin/kahlan --spec=tests
+./vendor/bin/kahlan --no-header --spec=tests

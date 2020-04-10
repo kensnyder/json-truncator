@@ -6,7 +6,7 @@ require_once __DIR__ . '/fixtures/MyTestClass.php';
 
 use KenSnyder\JsonTruncator;
 
-describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
+describe('JsonTruncator::stringify() with 2 rounds, no ellipsis', function () {
 	it('should encode short strings', function () {
 		$value = 'abc';
 		$json = JsonTruncator::stringify($value);
@@ -17,7 +17,7 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 5,
 			'maxItemLength' => 5,
-			'maxAttempts' => 2,
+			'maxRetries' => 2,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('"abc"');
@@ -27,7 +27,7 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 13,
 			'maxItemLength' => 5,
-			'maxAttempts' => 2,
+			'maxRetries' => 2,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('["abc","ghi"]');
@@ -62,7 +62,7 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 			'maxLength' => 25,
 			'maxItemLength' => 20,
 			'maxItems' => 2,
-			'maxAttempts' => 2,
+			'maxRetries' => 2,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('{"one":"abc","two":"def"}');
@@ -75,7 +75,7 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 25,
 			'maxItemLength' => 5,
-			'maxAttempts' => 2,
+			'maxRetries' => 2,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('{"one":"abc","two":"def"}');
@@ -85,7 +85,7 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 6,
 			'maxItemLength' => 5,
-			'maxAttempts' => 2,
+			'maxRetries' => 2,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('123456');
@@ -95,23 +95,43 @@ describe('JsonTruncator::stringify() with one round, no ellipsis', function () {
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 25,
 			'maxItemLength' => 10,
-			'maxAttempts' => 1,
+			'maxRetries' => 1,
 			'ellipsis' => '',
 		]);
 		expect($json)->toBe('{"response":{"data":["str');
 	});
 });
 
-describe('JsonTruncator::stringify() with one round, ellipsis', function () {
+describe('JsonTruncator::stringify() with 3 rounds, ellipsis', function () {
 	it('should truncate strings', function () {
 		$value = '1234567890';
 		$json = JsonTruncator::stringify($value, [
 			'maxLength' => 11,
 			'maxItemLength' => 11,
-			'maxAttempts' => 2,
+			'maxRetries' => 3,
 			'ellipsis' => '...',
 		]);
 		expect($json)->toBe('"123456..."');
+	});
+	it('should truncate strings in arrays', function () {
+		$value = ['one' => '1234567890'];
+		$json = JsonTruncator::stringify($value, [
+			'maxLength' => 19,
+			'maxItemLength' => 19,
+			'maxRetries' => 3,
+			'ellipsis' => '...',
+		]);
+		expect($json)->toBe('{"one":"12345..."}');
+	});
+	it('should truncate strings in arrays with overage', function () {
+		$value = ['one' => '12345678901234567890'];
+		$json = JsonTruncator::stringify($value, [
+			'maxLength' => 26,
+			'maxItemLength' => 26,
+			'maxRetries' => 3,
+			'ellipsis' => '...[%overage%]',
+		]);
+		expect($json)->toBe('{"one":"123...[17]"}');
 	});
 });
 
@@ -123,10 +143,10 @@ describe('JsonTruncator::stringify() option validator', function () {
 		};
 		expect($attempt)->toThrow();
 	});
-	it('should throw if maxAttempts is less than 2', function () {
+	it('should throw if maxRetries is less than 2', function () {
 		$attempt = function () {
 			$value = [];
-			JsonTruncator::stringify($value, ['maxAttempts' => -1]);
+			JsonTruncator::stringify($value, ['maxRetries' => -1]);
 		};
 		expect($attempt)->toThrow();
 	});
