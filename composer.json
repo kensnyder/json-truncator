@@ -1,25 +1,22 @@
 {
-    "name": "kensnyder/json-truncator",
-    "description": "Function to encode a value to json but keep it within a designated size",
-    "type": "library",
-    "require": {
-        "kahlan/kahlan": "^4.7"
-    },
-    "scripts": {
-        "test": "./vendor/bin/kahlan --spec=tests",
-        "test:watch": "composer test && chokidar \"**/*.php\" -c 'composer test'"
-    },
-    "autoload": {
-        "psr-0": {
-            "KenSnyder": "src"
-        }
-    },
-    "license": "ISC",
-    "authors": [
-        {
-            "name": "Ken Snyder",
-            "email": "kendsnyder@gmail.com"
-        }
-    ],
-    "minimum-stability": "stable"
+  "name": "kensnyder/json-truncator",
+  "description": "Encode a value to json but keep it within a designated size.",
+  "type": "library",
+  "require": {
+    "kahlan/kahlan": "^4.7"
+  },
+  "autoload": {
+    "psr-0": {
+      "KenSnyder": "src"
+    }
+  },
+  "license": "ISC",
+  "authors": [
+    {
+      "name": "Ken Snyder",
+      "email": "kendsnyder@gmail.com",
+      "github": "@kensnyder"
+    }
+  ],
+  "minimum-stability": "stable"
 }

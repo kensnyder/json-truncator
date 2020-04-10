@@ -1,0 +1,28 @@
+{
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "bracketSpacing": true,
+  "jsxBracketSameLine": false,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": "*.json",
+      "options": { "tabWidth": 2 }
+    },
+    {
+      "files": "*.php",
+      "options": {
+        "phpVersion": "7.2",
+        "tabWidth": 1,
+        "useTabs": true,
+        "trailingCommaPHP": true,
+        "braceStyle": "1tbs"
+      }
+    }
+  ]
+}
