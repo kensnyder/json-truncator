@@ -10,16 +10,14 @@ $example = file_get_contents(
 );
 $value = json_decode($example);
 
-$json = JsonTruncator::stringify($value, [
+$report = JsonTruncator::report($value, [
 	'maxLength' => 40000,
 	'maxItems' => 8,
-	'maxItemLength' => 4000,
-	'ellipsis' => '...',
+	'maxItemLength' => 1000,
+	//	'ellipsis' => '...snip',
 	'maxRetries' => 5,
 	'jsonFlags' => JsonTruncator::$defaults['jsonFlags'] + JSON_PRETTY_PRINT,
 ]);
 
-$length = strlen($json);
-echo "JSON is now $length long!\n";
-echo $json;
+print_r($report);
 echo "\n";

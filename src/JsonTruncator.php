@@ -34,15 +34,30 @@ class JsonTruncator {
 	];
 
 	/**
-	 * Run json_encode but ensure that result string is shorter than the maxLength
+	 * Run json_encode but ensure that result string is shorter than the
+	 * maxLength; return json string
 	 * @param mixed $value  The value to encode
 	 * @param array $options  Maximum values and decay rate (see $defaults)
 	 * @return string
 	 * @throws InvalidOptionException if $options contains invalid values
 	 */
 	public static function stringify($value, array $options = []): string {
+		$report = static::report($value, $options);
+		return $report['json'];
+	}
+
+	/**
+	 * Run json_encode but ensure that result string is shorter than the
+	 * maxLength; return json string and a report of results
+	 * @param mixed $value  The value to encode
+	 * @param array $options  Maximum values and decay rate (see $defaults)
+	 * @return string
+	 * @throws InvalidOptionException if $options contains invalid values
+	 */
+	public static function report($value, array $options = []): array {
 		$options = array_merge(static::$defaults, $options);
 		static::_validateOptions($options);
+		$options['retryCount'] = 0;
 		return static::_attempt($value, $options);
 	}
 
@@ -87,20 +102,32 @@ class JsonTruncator {
 	 * Recursively attempt to encode, truncqting each time
 	 * @param mixed $value  The value to encode
 	 * @param array $options  The options as outlined in $defaults
-	 * @return string
+	 * @return array
+	 * @property string json  The final json string
+	 * @property int bytes  The final json string length in bytes
+	 * @property int retryCount  The number of times json_encode was retried
+	 * @property bool gaveUp  True if maxRetries was reached
 	 */
-	protected static function _attempt($value, array $options): string {
+	protected static function _attempt($value, array $options): array {
 		$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
 		// use strlen and not mb_strlen because we care about byte length
-		if (strlen($json) <= $options['maxLength']) {
-			return $json;
+		$bytes = strlen($json);
+		if ($bytes <= $options['maxLength']) {
+			$retryCount = $options['retryCount'];
+			$gaveUp = false;
+			return compact('json', 'bytes', 'retryCount', 'gaveUp');
 		}
+		$options['retryCount']++;
 		$value = static::_walk($value, $options);
 		$newOptions = static::_decay($options);
 		if ($newOptions['maxRetries'] <= 0) {
 			// give up!
 			$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
-			return substr($json, 0, $options['maxLength']);
+			$bytes = $options['maxLength'];
+			$retryCount = $options['retryCount'];
+			$gaveUp = true;
+			$json = substr($json, 0, $bytes);
+			return compact('json', 'bytes', 'retryCount', 'gaveUp');
 		}
 		return static::_attempt($value, $newOptions);
 	}
