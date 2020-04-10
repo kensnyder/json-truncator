@@ -13,7 +13,7 @@ describe('JsonTruncator::stringify()', function() {
 	});
 	it('should truncate strings', function() {
 		$value = 'abcdef';
-		$json = JsonTruncator::stringify($value, ['maxLength' => 5]);
+		$json = JsonTruncator::stringify($value, ['maxLength' => 5, 'maxItemLength' => 5]);
 		expect($json)->toBe('"abc"');
 	});
 	it('should truncate strings inside arrays', function() {
@@ -23,7 +23,7 @@ describe('JsonTruncator::stringify()', function() {
 	});
 	it('should truncate arrays', function() {
 		$value = ['abc','def','ghi'];
-		$json = JsonTruncator::stringify($value, ['maxLength' => 13, 'maxItems' => 2]);
+		$json = JsonTruncator::stringify($value, ['maxLength' => 13, 'maxItemLength' => 10, 'maxItems' => 2]);
 		expect($json)->toBe('["abc","def"]');
 	});
 	it('should truncate stdClass objects', function() {
@@ -32,12 +32,12 @@ describe('JsonTruncator::stringify()', function() {
 			'two' => 'def',
 			'three' => 'ghi',
 		];
-		$json = JsonTruncator::stringify($value, ['maxLength' => 25, 'maxItems' => 2]);
+		$json = JsonTruncator::stringify($value, ['maxLength' => 25, 'maxItemLength' => 20, 'maxItems' => 2]);
 		expect($json)->toBe('{"one":"abc","two":"def"}');
 	});
 	it('should truncate other objects', function() {
 		$value = new MyTestClass();
-		$json = JsonTruncator::stringify($value, ['maxLength' => 25, 'maxItems' => 2]);
+		$json = JsonTruncator::stringify($value, ['maxLength' => 25, 'maxItemLength' => 20, 'maxItems' => 2]);
 		expect($json)->toBe('{"one":"abc","two":"def"}');
 	});
 	it('should truncate long array keys', function() {
