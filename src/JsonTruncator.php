@@ -18,18 +18,18 @@ class JsonTruncator {
 	 * @property int maxRetries  Max number of times to retry json_encode
 	 * @property float decayRate  How much to reduce limits on subsequent attempts
 	 * @property string ellipsis  The characters to append to truncated strings
-	 * @property array jsonFlags  The JSON_* constants to use when encoding
+	 * @property array jsonFlags  The integer total of JSON_* constants to use when encoding
 	 * @see https://www.php.net/manual/en/json.constants.php#constant.json-object-as-array
 	 * @property array jsonDepth  Max depth of nested arrays or objects
 	 */
 	public static $defaults = [
 		'maxLength' => 40000,
-		'maxItems' => 20,
+		'maxItems' => 8,
 		'maxItemLength' => 4000,
 		'maxRetries' => 8,
 		'decayRate' => 0.75,
 		'ellipsis' => '...[%overage%]',
-		'jsonFlags' => [JSON_UNESCAPED_UNICODE, JSON_UNESCAPED_SLASHES],
+		'jsonFlags' => JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES,
 		'jsonDepth' => 512,
 	];
 
@@ -42,7 +42,6 @@ class JsonTruncator {
 	 */
 	public static function stringify($value, array $options = []): string {
 		$options = array_merge(static::$defaults, $options);
-		$options['jsonBitmask'] = array_sum($options['jsonFlags']);
 		static::_validateOptions($options);
 		return static::_attempt($value, $options);
 	}
@@ -79,7 +78,7 @@ class JsonTruncator {
 		if ($options['maxRetries'] < 1) {
 			throw new InvalidOptionException('maxRetries must be at least 1');
 		}
-		if (!is_int($options['jsonBitmask'])) {
+		if (!is_int($options['jsonFlags'])) {
 			throw new InvalidOptionException('jsonFlags must be an array of integers');
 		}
 	}
@@ -91,7 +90,7 @@ class JsonTruncator {
 	 * @return string
 	 */
 	protected static function _attempt($value, array $options): string {
-		$json = json_encode($value, $options['jsonBitmask'], $options['jsonDepth']);
+		$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
 		// use strlen and not mb_strlen because we care about byte length
 		if (strlen($json) <= $options['maxLength']) {
 			return $json;
@@ -100,7 +99,7 @@ class JsonTruncator {
 		$newOptions = static::_decay($options);
 		if ($newOptions['maxRetries'] <= 0) {
 			// give up!
-			$json = json_encode($value, $options['jsonBitmask'], $options['jsonDepth']);
+			$json = json_encode($value, $options['jsonFlags'], $options['jsonDepth']);
 			return substr($json, 0, $options['maxLength']);
 		}
 		return static::_attempt($value, $newOptions);
@@ -180,6 +179,14 @@ class JsonTruncator {
 		if (!empty($keysToRemove)) {
 			foreach ($keysToRemove as $key) {
 				unset($value[$key]);
+			}
+			if ($options['ellipsis']) {
+				$ellipsis = str_replace(
+					'%overage%',
+					count($keysToRemove),
+					$options['ellipsis']
+				);
+				$value[count($value)] = $ellipsis;
 			}
 		}
 		return $value;

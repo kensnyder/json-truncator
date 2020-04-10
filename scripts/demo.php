@@ -12,13 +12,11 @@ $value = json_decode($example);
 
 $json = JsonTruncator::stringify($value, [
 	'maxLength' => 40000,
-	'maxItems' => 10,
-	'maxItemLength' => 2000,
+	'maxItems' => 8,
+	'maxItemLength' => 4000,
 	'ellipsis' => '...',
 	'maxRetries' => 5,
-	'jsonFlags' => array_merge(JsonTruncator::$defaults['jsonFlags'], [
-		JSON_PRETTY_PRINT,
-	]),
+	'jsonFlags' => JsonTruncator::$defaults['jsonFlags'] + JSON_PRETTY_PRINT,
 ]);
 
 $length = strlen($json);

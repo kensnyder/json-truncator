@@ -22,7 +22,7 @@ $safeJson = JsonTruncator::encode($myValue, [
   'maxRetries' => 5,
   'decayRate' => 0.75,
   'ellipsis' => '...[%overage%]',
-  'jsonFlags' => [JSON_UNESCAPED_UNICODE, JSON_UNESCAPED_SLASHES],
+  'jsonFlags' => JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES,
   'jsonDepth' => 512,
 ]);
 ```
@@ -35,9 +35,10 @@ $safeJson = JsonTruncator::encode($myValue, [
 - `maxRetries`: Max number of json_encode attempts
 - `decayRate`: How much to reduce limits on subsequent attempts
 - `ellipsis`: The characters to append to truncated strings
-- `jsonFlags`: The JSON\_\* constants to use when encoding. See php docs on
+- `jsonFlags`: The integer total of JSON\_\* constants to use when encoding.
+  See php docs for
   [JSON constants](https://www.php.net/manual/en/json.constants.php#constant.json-object-as-array)
-- `jsonDepth` Max depth of nested arrays or objects
+- `jsonDepth`: Max depth of nested arrays or objects
 
 ## When would it give up?
 
