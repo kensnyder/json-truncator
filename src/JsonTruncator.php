@@ -18,9 +18,11 @@ class JsonTruncator {
 	 * @property int maxRetries  Max number of times to retry json_encode
 	 * @property float decayRate  How much to reduce limits on subsequent attempts
 	 * @property string ellipsis  The characters to append to truncated strings
+	 * @property string ellipsisRegex  A regex to capture overage number
 	 * @property array jsonFlags  The integer total of JSON_* constants to use when encoding
 	 * @see https://www.php.net/manual/en/json.constants.php#constant.json-object-as-array
 	 * @property array jsonDepth  Max depth of nested arrays or objects
+	 * @see https://www.php.net/json_encode
 	 */
 	public static $defaults = [
 		'maxLength' => 40000,
@@ -29,6 +31,7 @@ class JsonTruncator {
 		'maxRetries' => 8,
 		'decayRate' => 0.75,
 		'ellipsis' => '...[%overage%]',
+		'ellipsisRegex' => '/...\[(\d+)\]$/',
 		'jsonFlags' => JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES,
 		'jsonDepth' => 512,
 	];
@@ -136,7 +139,9 @@ class JsonTruncator {
 	protected static function _createReport(string $json, array $options): array {
 		$bytes = strlen($json);
 		$retryCount = $options['retryCount'];
-		$gaveUp = $options['retryCount'] >= $options['maxRetries'];
+		$gaveUp =
+			$options['retryCount'] >= $options['maxRetries'] &&
+			strlen($json) === $options['maxLength'];
 		unset($options['retryCount']);
 		return compact('json', 'bytes', 'retryCount', 'gaveUp', 'options');
 	}
@@ -169,16 +174,12 @@ class JsonTruncator {
 	protected static function _walk($value, array $options = []) {
 		if (is_string($value)) {
 			// leave 2 characters for quotes
-			$max = $options['maxItemLength'] - mb_strlen($options['ellipsis']) - 2;
+			$max = $options['maxItemLength'] - strlen($options['ellipsis']) - 2;
 			if (strlen($value) < $max) {
 				return $value;
 			}
 			if ($options['ellipsis']) {
-				// add 3 to overage for quotes and 1-char string
-				$overage = mb_strlen($value) - $max + 3;
-				$short = mb_substr($value, 0, $max);
-				$ellipsis = str_replace('%overage%', $overage, $options['ellipsis']);
-				return $short . $ellipsis;
+				return static::_applyStringEllipsis($value, $options);
 			}
 			return mb_substr($value, 0, $max);
 		}
@@ -205,25 +206,66 @@ class JsonTruncator {
 			$newArray = [];
 			foreach ($value as $key => &$item) {
 				if (in_array($key, $keysToTruncate)) {
-					$key = mb_substr($key, 0, $options['maxItemLength'] - 2);
+					$key = static::_applyStringEllipsis($key, $options);
 				}
 				$newArray[$key] = $item;
 			}
 			$value = $newArray;
 		}
 		if (!empty($keysToRemove)) {
+			$lastValue = null;
 			foreach ($keysToRemove as $key) {
+				$lastValue = $value[$key];
 				unset($value[$key]);
 			}
 			if ($options['ellipsis']) {
-				$ellipsis = str_replace(
-					'%overage%',
-					count($keysToRemove),
-					$options['ellipsis']
-				);
-				$value[count($value)] = $ellipsis;
+				static::_applyArrayEllipsis($value, $keysToRemove, $lastValue, $options);
 			}
 		}
 		return $value;
+	}
+
+	protected static function _applyStringEllipsis(
+		string $value,
+		array $options
+	): string {
+		$max = $options['maxItemLength'] - strlen($options['ellipsis']) - 2;
+		$lastOverage = 0;
+		if (
+			$options['retryCount'] > 0 &&
+			strpos($options['ellipsis'], '%overage%') !== false &&
+			preg_match($options['ellipsisRegex'], $value, $match)
+		) {
+			// TODO: find out why 6 is a magic number here. may have to do with ellipsis length
+			$lastOverage = (int) $match[1] - strlen($match[0]) - 6;
+		}
+		// add 3 to overage for quotes and 1-char string
+		$overage = $lastOverage + mb_strlen($value) - $max + 3;
+		$short = mb_substr($value, 0, $max);
+		$ellipsis = str_replace('%overage%', $overage, $options['ellipsis']);
+		return $short . $ellipsis;
+	}
+
+	protected static function _applyArrayEllipsis(
+		array &$value,
+		array $keysToRemove,
+		$lastValue,
+		array $options
+	) {
+		$lastOverage = 0;
+		if (
+			$options['retryCount'] > 1 &&
+			strpos($options['ellipsis'], '%overage%') !== false &&
+			is_string($lastValue) &&
+			preg_match($options['ellipsisRegex'], $lastValue, $match)
+		) {
+			$lastOverage = (int) $match[1];
+		}
+		$ellipsis = str_replace(
+			'%overage%',
+			$lastOverage + count($keysToRemove),
+			$options['ellipsis']
+		);
+		$value[count($value)] = $ellipsis;
 	}
 }
